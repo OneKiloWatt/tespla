@@ -1,0 +1,11 @@
+.next/
+node_modules/
+out/
+build/
+.env*.local
+.DS_Store
+*.log
+coverage/
+playwright-report/
+test-results/
+.vercel/
