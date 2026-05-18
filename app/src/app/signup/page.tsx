@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Controller, useForm } from 'react-hook-form';
@@ -10,18 +11,28 @@ import { Card } from '@/components/ui/card';
 import { Field, Input } from '@/components/ui/input';
 import { IconCheck } from '@/components/icons';
 import { signupSchema, type SignupInput } from '@/lib/schemas';
+import { createClient } from '@/lib/supabase/client';
 
 export default function SignupPage() {
   const router = useRouter();
+  const [authError, setAuthError] = useState<string | null>(null);
   const { register, handleSubmit, control, formState: { errors, isSubmitting } } =
     useForm<SignupInput>({
       resolver: zodResolver(signupSchema),
-      defaultValues: { email: '', password: '', agreed: undefined as unknown as true },
+      defaultValues: { email: '', password: '', agreed: false as unknown as true },
     });
 
   const onSubmit = async (values: SignupInput) => {
-    // TODO: Supabase Auth で登録 + localStorage の計画をDBに移行
-    console.log('signup', values);
+    setAuthError(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({
+      email: values.email,
+      password: values.password,
+    });
+    if (error) {
+      setAuthError('登録に失敗しました。しばらく経ってから再度お試しください');
+      return;
+    }
     router.push('/home');
   };
 
@@ -54,7 +65,7 @@ export default function SignupPage() {
                 <label className="flex gap-2 text-xs text-text-mid items-start mt-1 cursor-pointer">
                   <Checkbox.Root
                     checked={field.value === true}
-                    onCheckedChange={(v) => field.onChange(v === true ? true : undefined)}
+                    onCheckedChange={(v) => field.onChange(v === true ? true : false)}
                     className="mt-0.5 w-4 h-4 border border-divider-strong rounded bg-white flex items-center justify-center data-[state=checked]:bg-accent data-[state=checked]:border-accent"
                   >
                     <Checkbox.Indicator className="text-white"><IconCheck size={12}/></Checkbox.Indicator>
@@ -75,6 +86,9 @@ export default function SignupPage() {
             <Button size="lg" block type="submit" disabled={isSubmitting}>
               登録して始める
             </Button>
+            {authError && (
+              <div className="text-xs text-danger">{authError}</div>
+            )}
           </Card>
         </form>
 

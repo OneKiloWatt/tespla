@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -9,16 +10,25 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field, Input } from '@/components/ui/input';
 import { loginSchema, type LoginInput } from '@/lib/schemas';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [authError, setAuthError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } =
     useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
 
   const onSubmit = async (values: LoginInput) => {
-    // TODO: Supabase Auth で実装
-    // const { error } = await supabase.auth.signInWithPassword(values);
-    console.log('login', values);
+    setAuthError(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: values.email,
+      password: values.password,
+    });
+    if (error) {
+      setAuthError('メールアドレスまたはパスワードが正しくありません');
+      return;
+    }
     router.push('/home');
   };
 
@@ -37,10 +47,10 @@ export default function LoginPage() {
             <Field label="パスワード" error={errors.password?.message}>
               <Input type="password" placeholder="••••••••" {...register('password')}/>
             </Field>
-            <div className="text-right -mt-1.5">
-              <Link href="/forgot-password" className="text-[11px] text-accent">パスワードを忘れた</Link>
-            </div>
             <Button size="lg" block type="submit" disabled={isSubmitting}>ログイン</Button>
+            {authError && (
+              <div className="text-xs text-danger">{authError}</div>
+            )}
           </Card>
         </form>
 

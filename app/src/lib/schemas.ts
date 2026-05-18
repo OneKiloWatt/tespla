@@ -3,7 +3,7 @@ import { z } from 'zod';
 /** メール + パスワードのログインフォーム */
 export const loginSchema = z.object({
   email: z.string().email('メールアドレスの形式が正しくありません'),
-  password: z.string().min(1, 'パスワードを入力してください'),
+  password: z.string().min(8, 'パスワードは8文字以上にしてください'),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
@@ -11,9 +11,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const signupSchema = z.object({
   email: z.string().email('メールアドレスの形式が正しくありません'),
   password: z.string().min(8, 'パスワードは8文字以上にしてください'),
-  agreed: z.literal(true, {
-    errorMap: () => ({ message: '利用規約に同意してください' }),
-  }),
+  agreed: z.literal(true, { error: '利用規約に同意してください' }),
 });
 export type SignupInput = z.infer<typeof signupSchema>;
 
