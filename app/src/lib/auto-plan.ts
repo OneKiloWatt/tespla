@@ -9,11 +9,7 @@ import { datesBetween } from './utils';
  *   - テスト前日は、翌日のテスト科目だけを勉強する
  *   - 各教科の1回の勉強の最小単位は30分（ユーザー設定が30未満ならその設定を尊重）
  *   - テストに近い方から計算し、最終的に勉強時間が均等になるようにする
- *
- * このファイルはアルゴリズムの輪郭。実装時に仕様詰めしてテストを書くこと。
  */
-
-const MIN_BLOCK = 30;
 
 interface PlanInput {
   startDate: string;     // ISO YYYY-MM-DD (計画開始 = 作成日)
@@ -42,49 +38,92 @@ export function dailyMins(date: string, testStart: string, settings: AutoSetting
 }
 
 /**
- * 計画自動生成のスタブ。
+ * 計画自動生成。
  *
  * @return studyDays（日付 → ブロック配列）
- *
- * NOTE: 現在は単純な均等割り。仕様にある「テストに近い方から計算」「均等配分」を満たすため
- *       実装時は次のように書き直す：
- *
- *   1. テスト前日に翌日のテスト科目を割り当て
- *   2. 残り日数 × 1日の勉強時間 から各科目への総時間を均等配分
- *   3. 1日内では30分単位で区切り、複数科目を混ぜる
- *   4. 端数は最終日（テストに最も近い日）に寄せる
  */
 export function generateAutoPlan(input: PlanInput): TestPlan['studyDays'] {
-  const dates = datesBetween(input.startDate, prevDay(input.testStart));
-  const subj = input.subjects;
   const studyDays: Record<string, StudyBlock[]> = {};
 
-  // 仮実装: 各日 N教科を最低30分ずつ均等配分する素朴版
-  for (const d of dates) {
-    const total = dailyMins(d, input.testStart, input.settings);
-    const each = Math.max(MIN_BLOCK, Math.floor(total / subj.length / MIN_BLOCK) * MIN_BLOCK);
-    const fit = Math.floor(total / each);
-    const blocks: StudyBlock[] = subj.slice(0, fit).map(id => ({
-      id, mins: each, source: 'auto',
-    }));
-    studyDays[d] = blocks;
+  // 1. effectiveMinBlock の計算
+  const settingMins = [input.settings.weekdayMins, input.settings.weekdayClubMins, input.settings.weekendMins]
+    .filter(m => m > 0);
+  const minSetting = settingMins.length > 0 ? Math.min(...settingMins) : 30;
+  const effectiveMinBlock = minSetting < 30 ? minSetting : 30;
+
+  // 2. 全学習日の取得（テスト開始日の前日まで）
+  const allStudyDates = datesBetween(input.startDate, prevDay(input.testStart));
+
+  // 3. preTestDayMap の構築（決定論的順序）
+  const preTestDayMap: Record<string, string[]> = {};
+  const studyDateSet = new Set(allStudyDates);
+  for (const testDay of Object.keys(input.testDaySubjects).sort()) {
+    const prevD = prevDay(testDay);
+    const subjs = input.testDaySubjects[testDay];
+    if (studyDateSet.has(prevD) && subjs.length > 0) {
+      preTestDayMap[prevD] = subjs;
+    }
   }
 
-  // テスト前日は翌日のテスト科目のみ
-  for (const testDay of Object.keys(input.testDaySubjects)) {
-    const prev = prevDay(testDay);
-    const total = dailyMins(prev, input.testStart, input.settings);
-    const subjs = input.testDaySubjects[testDay];
-    if (!subjs?.length) continue;
-    const each = Math.max(MIN_BLOCK, Math.floor(total / subjs.length / MIN_BLOCK) * MIN_BLOCK);
-    studyDays[prev] = subjs.map(id => ({ id, mins: each, source: 'auto' }));
+  // 4. 通常日への均等配分
+  const regularDates = allStudyDates.filter(d => !(d in preTestDayMap));
+
+  // 総スロット数（dailyMins = 0 の日は除外）
+  let totalSlots = 0;
+  for (const d of regularDates) {
+    const mins = dailyMins(d, input.testStart, input.settings);
+    if (mins > 0) totalSlots += Math.floor(mins / effectiveMinBlock);
+  }
+
+  const slotsPerSubject = input.subjects.length > 0
+    ? Math.floor(totalSlots / input.subjects.length)
+    : 0;
+
+  // 逆順（テスト近順）でラウンドロビン割り当て
+  const remaining: Record<string, number> = {};
+  for (const s of input.subjects) remaining[s] = slotsPerSubject;
+
+  const reverseDates = [...regularDates].reverse();
+  let circularIdx = 0;
+
+  for (const day of reverseDates) {
+    const mins = dailyMins(day, input.testStart, input.settings);
+    if (mins === 0) { studyDays[day] = []; continue; }
+    const availableSlots = Math.floor(mins / effectiveMinBlock);
+    const blocks: StudyBlock[] = [];
+    for (let i = 0; i < availableSlots; i++) {
+      let found = false;
+      for (let attempt = 0; attempt < input.subjects.length; attempt++) {
+        const s = input.subjects[(circularIdx + attempt) % input.subjects.length];
+        if (remaining[s] > 0) {
+          blocks.push({ id: s, mins: effectiveMinBlock, source: 'auto' });
+          remaining[s]--;
+          circularIdx = (circularIdx + attempt + 1) % input.subjects.length;
+          found = true;
+          break;
+        }
+      }
+      if (!found) break;
+    }
+    studyDays[day] = blocks;
+  }
+
+  // 5. テスト前日への割り当て
+  for (const [preDay, subjs] of Object.entries(preTestDayMap)) {
+    const mins = dailyMins(preDay, input.testStart, input.settings);
+    if (mins === 0) { studyDays[preDay] = []; continue; }
+    const each = Math.max(
+      effectiveMinBlock,
+      Math.floor(mins / subjs.length / effectiveMinBlock) * effectiveMinBlock
+    );
+    studyDays[preDay] = subjs.map(s => ({ id: s, mins: each, source: 'auto' }));
   }
 
   return studyDays;
 }
 
 function prevDay(d: string): string {
-  const dt = new Date(d);
-  dt.setDate(dt.getDate() - 1);
+  const dt = new Date(d + 'T00:00:00Z');
+  dt.setUTCDate(dt.getUTCDate() - 1);
   return dt.toISOString().slice(0, 10);
 }
