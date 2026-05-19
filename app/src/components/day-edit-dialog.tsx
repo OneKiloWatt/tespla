@@ -13,9 +13,13 @@ interface DayEditDialogProps {
   date: string;
   items: StudyBlock[];
   onSave: (items: StudyBlock[]) => void;
+  /** 保存中フラグ（省略可） */
+  isSaving?: boolean;
+  /** 保存エラーメッセージ（省略可） */
+  error?: string | null;
 }
 
-export function DayEditDialog({ open, onOpenChange, date, items, onSave }: DayEditDialogProps) {
+export function DayEditDialog({ open, onOpenChange, date, items, onSave, isSaving, error }: DayEditDialogProps) {
   const [draft, setDraft] = useState<StudyBlock[]>(items);
   const total = draft.reduce((a, b) => a + b.mins, 0);
 
@@ -63,9 +67,17 @@ export function DayEditDialog({ open, onOpenChange, date, items, onSave }: DayEd
             <IconPlus/> 科目を追加
           </Button>
 
+          {error && (
+            <div className="mt-3 text-xs text-danger font-medium">
+              {error}
+            </div>
+          )}
+
           <div className="flex gap-2 mt-4">
-            <Button variant="secondary" className="flex-1" onClick={() => onOpenChange(false)}>キャンセル</Button>
-            <Button className="flex-[1.5]" onClick={() => { onSave(draft); onOpenChange(false); }}>保存</Button>
+            <Button variant="secondary" className="flex-1" onClick={() => onOpenChange(false)} disabled={isSaving}>キャンセル</Button>
+            <Button className="flex-[1.5]" disabled={isSaving} onClick={() => onSave(draft)}>
+              {isSaving ? '保存中...' : '保存'}
+            </Button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

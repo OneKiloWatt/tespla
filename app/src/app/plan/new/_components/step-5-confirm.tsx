@@ -1,7 +1,9 @@
 'use client';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlanDraft } from '@/lib/plan-draft-store';
 import { useAppStore } from '@/lib/store';
+import { savePlan } from '@/actions/plan';
 import { Card, CardSoft } from '@/components/ui/card';
 import { SubjectPill } from '@/components/subject-pill';
 import { IconWarning } from '@/components/icons';
@@ -12,6 +14,8 @@ export function Step5Confirm() {
   const router = useRouter();
   const d = usePlanDraft();
   const { upsertPlan, user } = useAppStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const totalMins = Object.values(d.studyDays)
     .flat()
@@ -19,30 +23,55 @@ export function Step5Confirm() {
   const totalDays = Object.keys(d.studyDays).length;
   const testDays = Object.keys(d.testDaySubjects).length;
 
-  const handleSave = () => {
-    const id = crypto.randomUUID();
-    upsertPlan({
-      id,
-      testName: d.testName,
-      startDate: d.startDate,
-      endDate: d.endDate,
-      subjects: d.subjects,
-      testDaySubjects: d.testDaySubjects,
-      studyDays: d.studyDays,
-      autoSettings: d.mode === 'auto' ? d.settings : undefined,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    d.reset();
-    router.push('/home');
+  const handleSave = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setSaveError(null);
+
+    try {
+      if (user) {
+        // ログイン時: Server Action で DB に保存
+        await savePlan({
+          testName: d.testName,
+          startDate: d.startDate,
+          endDate: d.endDate,
+          subjects: d.subjects,
+          testDaySubjects: d.testDaySubjects,
+          mode: d.mode,
+          settings: d.settings,
+          studyDays: d.studyDays,
+        });
+      } else {
+        // 未ログイン: Zustand（localStorage）に保存
+        const id = crypto.randomUUID();
+        upsertPlan({
+          id,
+          testName: d.testName,
+          startDate: d.startDate,
+          endDate: d.endDate,
+          subjects: d.subjects,
+          testDaySubjects: d.testDaySubjects,
+          studyDays: d.studyDays,
+          autoSettings: d.mode === 'auto' ? d.settings : undefined,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      d.reset();
+      router.push('/home');
+    } catch {
+      setSaveError('保存できませんでした。もう一度試してください');
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <StepShell
       title="計画の内容を確認"
       subtitle="保存するとホームから毎日確認できます。"
-      nextLabel="保存してホームへ"
+      nextLabel={isSubmitting ? '保存中...' : '保存してホームへ'}
       onNext={handleSave}
+      nextDisabled={isSubmitting}
     >
       <Card>
         <div className="text-xs text-text-mid mb-1">テスト名</div>
@@ -60,6 +89,12 @@ export function Step5Confirm() {
           {d.subjects.map(id => <SubjectPill key={id} subjId={id}/>)}
         </div>
       </Card>
+
+      {saveError && (
+        <div className="mt-3 text-xs text-danger font-medium px-1">
+          {saveError}
+        </div>
+      )}
 
       {!user && (
         <CardSoft className="mt-3 text-xs text-text-mid leading-[1.6] flex gap-2 items-start">

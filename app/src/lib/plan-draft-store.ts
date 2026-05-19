@@ -22,7 +22,7 @@ const DEFAULT_AUTO_SETTINGS: AutoSettings = {
   noClubBeforeTest: true,
 };
 
-interface PlanDraftState {
+export interface PlanDraftState {
   step: number; // 0..4
 
   testName: string;
