@@ -12,10 +12,15 @@ import { Field, Input } from '@/components/ui/input';
 import { IconCheck } from '@/components/icons';
 import { signupSchema, type SignupInput } from '@/lib/schemas';
 import { createClient } from '@/lib/supabase/client';
+import { savePlan } from '@/actions/plan';
+import { testPlanToPlanDraftData } from '@/lib/db-converters';
+import { useAppStore } from '@/lib/store';
 
 export default function SignupPage() {
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [migrateError, setMigrateError] = useState<string | null>(null);
+  const { plans, activePlanId, reset } = useAppStore();
   const { register, handleSubmit, control, formState: { errors, isSubmitting } } =
     useForm<SignupInput>({
       resolver: zodResolver(signupSchema),
@@ -24,7 +29,13 @@ export default function SignupPage() {
 
   const onSubmit = async (values: SignupInput) => {
     setAuthError(null);
+    setMigrateError(null);
     const supabase = createClient();
+
+    // 移行対象のプランを特定（signUp 前に取得しておく）
+    const planToMigrate = plans.find(p => p.id === activePlanId) ?? plans[0] ?? null;
+
+    // 1. アカウント作成
     const { error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
@@ -33,6 +44,22 @@ export default function SignupPage() {
       setAuthError('登録に失敗しました。しばらく経ってから再度お試しください');
       return;
     }
+
+    // 2. プラン移行
+    if (planToMigrate) {
+      try {
+        await savePlan(testPlanToPlanDraftData(planToMigrate));
+      } catch {
+        console.error('plan migration failed');
+        setMigrateError('登録は完了しましたが、計画の移行に失敗しました。お試し中のテスト計画は保存できませんでした。ホーム画面から新しく作成してください。');
+        return;
+      }
+    }
+
+    // 3. localStorage クリア
+    reset();
+
+    // 4. ホームへ
     router.push('/home');
   };
 
@@ -88,6 +115,9 @@ export default function SignupPage() {
             </Button>
             {authError && (
               <div className="text-xs text-danger">{authError}</div>
+            )}
+            {migrateError && (
+              <div className="text-xs text-danger">{migrateError}</div>
             )}
           </Card>
         </form>

@@ -77,6 +77,30 @@ export type PlanDraftData = Pick<
 >;
 
 /**
+ * TestPlan（localStorage のお試し計画）→ PlanDraftData に変換
+ * signup 完了時に DB へ移行するために使用する
+ */
+export function testPlanToPlanDraftData(plan: TestPlan): PlanDraftData {
+  const defaultSettings: AutoSettings = {
+    weekdayMins: 90,
+    weekdayClubMins: 60,
+    weekendMins: 120,
+    clubDays: [],
+    noClubBeforeTest: false,
+  };
+  return {
+    testName: plan.testName,
+    startDate: plan.startDate,
+    endDate: plan.endDate,
+    subjects: plan.subjects,
+    testDaySubjects: plan.testDaySubjects,
+    mode: plan.autoSettings ? 'auto' : 'manual',
+    settings: plan.autoSettings ?? defaultSettings,
+    studyDays: plan.studyDays,
+  };
+}
+
+/**
  * PlanDraftData → DB 挿入用データ構造に変換
  */
 export function planDraftToInsertData(draft: PlanDraftData, userId: string): PlanInsertData {
