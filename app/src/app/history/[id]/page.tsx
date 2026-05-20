@@ -1,6 +1,6 @@
-'use client';
-import { useParams } from 'next/navigation';
-import { useAppStore } from '@/lib/store';
+import { notFound, redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { fetchExamDetail } from '@/lib/db-converters';
 import { subjectById } from '@/lib/subjects';
 import { AppBar } from '@/components/app-bar';
 import { Card, CardSoft } from '@/components/ui/card';
@@ -9,27 +9,33 @@ import { IconPencil } from '@/components/icons';
 
 /**
  * テストの記録 詳細 (/history/[id])
+ *
+ * Server Component: DB から詳細を取得して表示する。
  */
-export default function HistoryDetailPage() {
-  const params = useParams<{ id: string }>();
-  const { plans } = useAppStore();
-  const plan = plans.find(p => p.id === params.id);
+export default async function HistoryDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
 
-  if (!plan) {
-    return (
-      <>
-        <AppBar title="テストの記録"/>
-        <main className="flex-1 overflow-y-auto p-[18px] text-center text-text-mid text-sm">
-          記録が見つかりません。
-        </main>
-      </>
-    );
-  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) redirect('/history');
+
+  const plan = await fetchExamDetail(supabase, id, user.id);
+
+  if (!plan) notFound();
+
+  const hasResult = plan.result !== undefined;
   const scores = plan.result?.scores ?? {};
   const memo = plan.result?.memo;
   const allDays = Object.keys(plan.studyDays);
-  const totalMins = allDays.reduce((a, d) => a + (plan.studyDays[d]?.reduce((aa, b) => aa + b.mins, 0) ?? 0), 0);
+  const totalMins = allDays.reduce(
+    (a, d) => a + (plan.studyDays[d]?.reduce((aa, b) => aa + b.mins, 0) ?? 0),
+    0
+  );
   const subjectsList = plan.subjects.map(id => ({ id, score: scores[id] ?? 0 }));
   const avg = subjectsList.length
     ? Math.round(subjectsList.reduce((a, b) => a + b.score, 0) / subjectsList.length)
@@ -47,13 +53,17 @@ export default function HistoryDetailPage() {
 
         <Card>
           <div className="flex items-center">
-            <div className="flex-1 text-center">
-              <div className="text-[11px] text-text-mid">5教科平均</div>
-              <div className="text-[30px] font-extrabold text-accent leading-tight mt-0.5">
-                {avg}<span className="text-sm text-text-mid">点</span>
-              </div>
-            </div>
-            <div className="w-px self-stretch bg-divider"/>
+            {hasResult && (
+              <>
+                <div className="flex-1 text-center">
+                  <div className="text-[11px] text-text-mid">5教科平均</div>
+                  <div className="text-[30px] font-extrabold text-accent leading-tight mt-0.5">
+                    {avg}<span className="text-sm text-text-mid">点</span>
+                  </div>
+                </div>
+                <div className="w-px self-stretch bg-divider"/>
+              </>
+            )}
             <div className="flex-1 text-center">
               <div className="text-[11px] text-text-mid">勉強時間</div>
               <div className="text-[30px] font-extrabold leading-tight mt-0.5">
@@ -64,18 +74,26 @@ export default function HistoryDetailPage() {
 
           <div className="border-t border-divider my-3"/>
 
-          <div className="text-xs font-bold mb-2">科目別の結果</div>
-          <div className="flex flex-col gap-2">
-            {subjectsList.map(r => (
-              <div key={r.id} className="flex items-center gap-2.5">
-                <SubjectPill subjId={r.id}/>
-                <div className="flex-1 h-1.5 bg-divider rounded overflow-hidden">
-                  <div className="h-full" style={{ width: `${r.score}%`, background: subjectById(r.id).color }}/>
-                </div>
-                <div className="min-w-[38px] text-right text-[13px] font-bold">{r.score}点</div>
+          {hasResult ? (
+            <>
+              <div className="text-xs font-bold mb-2">科目別の結果</div>
+              <div className="flex flex-col gap-2">
+                {subjectsList.map(r => (
+                  <div key={r.id} className="flex items-center gap-2.5">
+                    <SubjectPill subjId={r.id}/>
+                    <div className="flex-1 h-1.5 bg-divider rounded overflow-hidden">
+                      <div className="h-full" style={{ width: `${r.score}%`, background: subjectById(r.id).color }}/>
+                    </div>
+                    <div className="min-w-[38px] text-right text-[13px] font-bold">{r.score}点</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <div className="text-sm text-text-mid text-center py-4">
+              まだ結果が記入されていません
+            </div>
+          )}
         </Card>
 
         {memo && (

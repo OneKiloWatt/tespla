@@ -2,7 +2,7 @@
  * フロントエンド型 (TestPlan / PlanDraftState) ↔ DB 行 の変換ユーティリティ
  */
 
-import type { TestPlan, StudyBlock, AutoSettings } from './types';
+import type { TestPlan, StudyBlock, AutoSettings, TestResult } from './types';
 import type { PlanDraftState } from './plan-draft-store';
 import { subjectById } from './subjects';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -202,6 +202,7 @@ export interface DbExamSubject {
   subject_id: string;
   subject_name: string;
   daily_plans?: DbDailyPlan[];
+  exam_results?: DbExamResult[];
 }
 
 export interface DbDailyPlan {
@@ -221,6 +222,25 @@ export interface DbAvailabilityRule {
   pre_exam_rest_mode: boolean;
 }
 
+export interface DbExamResult {
+  id: string;
+  exam_subject_id: string;
+  actual_score: number;
+  actual_study_minutes: number | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface FinishedPlanSummary {
+  id: string;
+  testName: string;
+  endDate: string;
+  subjects: string[];
+  avgScore: number | null;    // 全科目平均（結果未記入なら null）
+  totalStudyMins: number;     // daily_plans の planned_minutes 合計
+  hasResult: boolean;
+}
+
 /**
  * Supabase クエリ結果 → TestPlan 型に変換
  */
@@ -229,6 +249,7 @@ export function dbRowsToTestPlan(
   subjects: DbExamSubject[],
   dailyPlans: DbDailyPlan[],
   arRow?: DbAvailabilityRule | null,
+  results?: DbExamResult[],
 ): TestPlan {
   // subjects[]
   const subjectIds = subjects.map(s => s.subject_id);
@@ -261,6 +282,11 @@ export function dbRowsToTestPlan(
     };
   }
 
+  // result（results が渡された場合のみセット）
+  const result = results !== undefined
+    ? dbExamResultsToTestResult(subjects, results)
+    : undefined;
+
   return {
     id: exam.id,
     testName: exam.name,
@@ -270,9 +296,117 @@ export function dbRowsToTestPlan(
     testDaySubjects,
     studyDays,
     autoSettings,
+    result,
     createdAt: exam.created_at,
     updatedAt: exam.updated_at,
   };
+}
+
+/**
+ * DB の exam_results 行群 → TestResult に変換
+ */
+export function dbExamResultsToTestResult(
+  subjects: DbExamSubject[],
+  results: DbExamResult[],
+): TestResult | undefined {
+  if (results.length === 0) return undefined;
+
+  // examSubjectId → subjectId のマップ
+  const examSubjectIdToSubjectId = new Map(
+    subjects.map(s => [s.id, s.subject_id])
+  );
+
+  const scores: Record<string, number> = {};
+  for (const r of results) {
+    const subjectId = examSubjectIdToSubjectId.get(r.exam_subject_id);
+    if (subjectId !== undefined) {
+      scores[subjectId] = r.actual_score;
+    }
+  }
+
+  const memo = results.find(r => r.note !== null)?.note ?? undefined;
+  const recordedAt = results[0].created_at;
+
+  return { scores, memo, recordedAt };
+}
+
+/**
+ * ログインユーザーの finished な計画一覧を取得
+ */
+export async function fetchFinishedPlans(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<FinishedPlanSummary[]> {
+  const { data, error } = await supabase
+    .from('exams')
+    .select('id, name, end_date, exam_subjects(subject_id, exam_results(actual_score)), daily_plans(planned_minutes)')
+    .eq('user_id', userId)
+    .eq('status', 'finished')
+    .order('end_date', { ascending: true });
+
+  if (error || !data) return [];
+
+  return (data as Array<{
+    id: string;
+    name: string;
+    end_date: string;
+    exam_subjects: Array<{
+      subject_id: string;
+      exam_results: Array<{ actual_score: number }>;
+    }>;
+    daily_plans: Array<{ planned_minutes: number }>;
+  }>).map(row => {
+    const examSubjects = row.exam_subjects ?? [];
+    const allResults = examSubjects.flatMap(s => s.exam_results ?? []);
+    const subjects = examSubjects.map(s => s.subject_id);
+
+    const avgScore = allResults.length > 0
+      ? Math.round(allResults.reduce((a, r) => a + r.actual_score, 0) / allResults.length)
+      : null;
+
+    const totalStudyMins = (row.daily_plans ?? []).reduce(
+      (a: number, dp: { planned_minutes: number }) => a + dp.planned_minutes,
+      0
+    );
+
+    return {
+      id: row.id,
+      testName: row.name,
+      endDate: row.end_date,
+      subjects,
+      avgScore,
+      totalStudyMins,
+      hasResult: allResults.length > 0,
+    };
+  });
+}
+
+/**
+ * 単一計画の詳細（結果込み）を取得
+ */
+export async function fetchExamDetail(
+  supabase: SupabaseClient,
+  examId: string,
+  userId: string,
+): Promise<TestPlan | null> {
+  const { data, error } = await supabase
+    .from('exams')
+    .select('*, exam_subjects(*, exam_results(*)), daily_plans(*)')
+    .eq('id', examId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const subjects = (data.exam_subjects ?? []) as DbExamSubject[];
+  // daily_plans はクエリでトップレベルに含まれる
+  const dailyPlans = (data.daily_plans ?? []) as DbDailyPlan[];
+  const flatResults: DbExamResult[] = subjects.flatMap((s: DbExamSubject) => s.exam_results ?? []);
+
+  // availability_rules は今回のクエリに含まれないため null
+  const arRow: DbAvailabilityRule | null = null;
+
+  return dbRowsToTestPlan(data as DbExam, subjects, dailyPlans, arRow, flatResults);
 }
 
 /**

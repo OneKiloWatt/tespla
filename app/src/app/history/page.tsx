@@ -1,21 +1,22 @@
-'use client';
 import Link from 'next/link';
-import { useAppStore } from '@/lib/store';
+import { createClient } from '@/lib/supabase/server';
+import { fetchFinishedPlans } from '@/lib/db-converters';
+import { HistoryView } from './_components/history-view';
 import { AppBar } from '@/components/app-bar';
 import { BottomNav } from '@/components/bottom-nav';
 import { Card, CardSoft } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SubjectPill } from '@/components/subject-pill';
 import { IconLock } from '@/components/icons';
 
 /**
  * 過去の振り返り（/history）
  *
- * - ログインしてない場合: ログインを促す
- * - ログイン済み: 過去のテスト計画＋結果の一覧
+ * - ログインしていない場合: ログインを促す UI
+ * - ログイン済み: HistoryView で finished な計画一覧を表示
  */
-export default function HistoryPage() {
-  const { user } = useAppStore();
+export default async function HistoryPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     return (
@@ -52,26 +53,6 @@ export default function HistoryPage() {
     );
   }
 
-  return (
-    <>
-      <AppBar title="過去の振り返り" showBack={false}/>
-      <main className="flex-1 overflow-y-auto p-4">
-        <Card className="mb-3.5">
-          <div className="text-[13px] font-bold mb-1">5教科平均の推移</div>
-          <div className="text-[11px] text-text-mid mb-3.5">過去のテスト結果</div>
-          {/* TODO: 折れ線グラフコンポーネント */}
-          <div className="h-20 bg-bg-card-soft rounded-lg flex items-center justify-center text-xs text-text-soft">
-            折れ線グラフ（実装時に追加）
-          </div>
-        </Card>
-
-        <div className="text-[13px] font-bold mb-2 px-1">テスト一覧</div>
-        {/* TODO: DBから取得した過去計画一覧 */}
-        <Card className="text-center text-xs text-text-mid">
-          まだ記録がありません。
-        </Card>
-      </main>
-      <BottomNav/>
-    </>
-  );
+  const plans = await fetchFinishedPlans(supabase, user.id);
+  return <HistoryView plans={plans} />;
 }

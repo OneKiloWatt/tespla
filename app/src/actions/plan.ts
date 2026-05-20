@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { planDraftToInsertData } from '@/lib/db-converters';
 import type { PlanDraftData } from '@/lib/db-converters';
-import { savePlanSchema, updateDailyPlanSchema } from '@/lib/schemas';
+import { savePlanSchema, updateDailyPlanSchema, saveResultSchema } from '@/lib/schemas';
 
 /**
  * 計画を DB に保存する Server Action
@@ -180,6 +180,79 @@ export async function finishAndCreateNew(existingExamId: string): Promise<void> 
     .select();
   if (error) throw error;
   if (!data || data.length === 0) throw new Error('Plan not found or unauthorized');
+}
+
+/**
+ * テスト結果を DB に保存する Server Action
+ */
+export async function saveResult(
+  examId: string,
+  scores: Record<string, number>,
+  memo?: string,
+): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  // Zod バリデーション
+  const parsed = saveResultSchema.safeParse({ examId, scores, memo });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues.map(i => i.message).join(', '));
+  }
+
+  // 所有権確認
+  const { data: examData } = await supabase
+    .from('exams')
+    .select('id')
+    .eq('id', examId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (!examData) throw new Error('Unauthorized');
+
+  // subjectId → examSubjectId マップを作成
+  const { data: examSubjects, error: esError } = await supabase
+    .from('exam_subjects')
+    .select('id, subject_id')
+    .eq('exam_id', examId);
+  if (esError) throw new Error('科目データの取得に失敗しました');
+
+  const subjectIdToExamSubjectId = new Map(
+    (examSubjects ?? []).map((es: { id: string; subject_id: string }) => [es.subject_id, es.id])
+  );
+
+  // exam_results を INSERT or UPDATE（PK を変えないため SELECT で存在確認してから分岐）
+  const now = new Date().toISOString();
+  for (const [subjectId, score] of Object.entries(parsed.data.scores)) {
+    const examSubjectId = subjectIdToExamSubjectId.get(subjectId);
+    if (!examSubjectId) continue; // マップに存在しない科目はスキップ
+
+    const { data: existing } = await supabase
+      .from('exam_results')
+      .select('id')
+      .eq('exam_subject_id', examSubjectId)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabase
+        .from('exam_results')
+        .update({ actual_score: score, note: parsed.data.memo ?? null, updated_at: now })
+        .eq('id', existing.id);
+      if (error) throw new Error('結果の保存に失敗しました');
+    } else {
+      const { error } = await supabase
+        .from('exam_results')
+        .insert({ id: crypto.randomUUID(), exam_subject_id: examSubjectId, actual_score: score, note: parsed.data.memo ?? null });
+      if (error) throw new Error('結果の保存に失敗しました');
+    }
+  }
+
+  // exam を finished に更新
+  const { error: updateError } = await supabase
+    .from('exams')
+    .update({ status: 'finished', updated_at: now })
+    .eq('id', examId)
+    .eq('user_id', user.id);
+  if (updateError) throw new Error('計画ステータスの更新に失敗しました');
 }
 
 /**
