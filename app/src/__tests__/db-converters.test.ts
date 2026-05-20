@@ -30,6 +30,7 @@ const baseDraftAuto: PlanDraftData = {
     '2025-10-15': ['math', 'en'],
     '2025-10-16': ['jp'],
   },
+  customSubjects: [],
   mode: 'auto',
   settings: {
     weekdayMins: 90,
@@ -57,6 +58,7 @@ const baseDraftManual: PlanDraftData = {
   endDate: '2025-07-12',
   subjects: ['sci', 'soc'],
   testDaySubjects: { '2025-07-10': ['sci', 'soc'] },
+  customSubjects: [],
   mode: 'manual',
   settings: {
     weekdayMins: 60,

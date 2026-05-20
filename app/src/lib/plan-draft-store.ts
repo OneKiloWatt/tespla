@@ -30,6 +30,7 @@ export interface PlanDraftState {
   endDate: string;
   subjects: string[];
   testDaySubjects: Record<string, string[]>;
+  customSubjects: { id: string; label: string }[];
 
   mode: 'auto' | 'manual';
   settings: AutoSettings;
@@ -41,6 +42,8 @@ export interface PlanDraftState {
   prev: () => void;
   patch: (p: Partial<PlanDraftState>) => void;
   reset: () => void;
+  addCustomSubject: (label: string) => void;
+  removeCustomSubject: (id: string) => void;
 }
 
 function defaults() {
@@ -55,6 +58,7 @@ function defaults() {
     endDate: iso(inAMonth),
     subjects: ['jp','math','en','sci','soc'],
     testDaySubjects: {},
+    customSubjects: [],
     mode: 'auto' as const,
     settings: DEFAULT_AUTO_SETTINGS,
     studyDays: {},
@@ -68,4 +72,20 @@ export const usePlanDraft = create<PlanDraftState>()((set) => ({
   prev: () => set((s) => ({ step: Math.max(0, s.step - 1) })),
   patch: (p) => set(p),
   reset: () => set(defaults()),
+  addCustomSubject: (label: string) => {
+    const id = 'custom_' + crypto.randomUUID();
+    set(s => ({
+      customSubjects: [...s.customSubjects, { id, label }],
+      subjects: [...s.subjects, id],
+    }));
+  },
+  removeCustomSubject: (id: string) => {
+    set(s => ({
+      customSubjects: s.customSubjects.filter(c => c.id !== id),
+      subjects: s.subjects.filter(sid => sid !== id),
+      testDaySubjects: Object.fromEntries(
+        Object.entries(s.testDaySubjects).map(([date, ids]) => [date, ids.filter(x => x !== id)])
+      ),
+    }));
+  },
 }));

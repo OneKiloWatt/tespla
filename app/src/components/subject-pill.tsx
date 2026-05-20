@@ -4,11 +4,12 @@ import { cn } from '@/lib/utils';
 
 interface SubjectPillProps {
   subjId: SubjectId | string;
+  label?: string;
   mins?: number | null;
   className?: string;
 }
 
-export function SubjectPill({ subjId, mins, className }: SubjectPillProps) {
+export function SubjectPill({ subjId, label, mins, className }: SubjectPillProps) {
   const s = subjectById(subjId);
   return (
     <span
@@ -23,7 +24,7 @@ export function SubjectPill({ subjId, mins, className }: SubjectPillProps) {
       }}
     >
       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }}/>
-      {s.label}
+      {label ?? s.label}
       {mins != null && <span className="ml-0.5 font-medium">{mins}分</span>}
     </span>
   );

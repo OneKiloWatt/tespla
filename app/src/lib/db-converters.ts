@@ -73,7 +73,7 @@ export interface PlanInsertData {
 /** planDraftToInsertData に渡すデータ（state のうちデータ部分のみ） */
 export type PlanDraftData = Pick<
   PlanDraftState,
-  'testName' | 'startDate' | 'endDate' | 'subjects' | 'testDaySubjects' | 'mode' | 'settings' | 'studyDays'
+  'testName' | 'startDate' | 'endDate' | 'subjects' | 'testDaySubjects' | 'mode' | 'settings' | 'studyDays' | 'customSubjects'
 >;
 
 /**
@@ -97,6 +97,7 @@ export function testPlanToPlanDraftData(plan: TestPlan): PlanDraftData {
     mode: plan.autoSettings ? 'auto' : 'manual',
     settings: plan.autoSettings ?? defaultSettings,
     studyDays: plan.studyDays,
+    customSubjects: [],
   };
 }
 
@@ -120,13 +121,14 @@ export function planDraftToInsertData(draft: PlanDraftData, userId: string): Pla
   };
 
   // exam_subjects
+  const customMap = new Map(draft.customSubjects.map(c => [c.id, c.label]));
   const examSubjects: ExamSubjectInsert[] = draft.subjects.map((subjectId, idx) => {
-    const subject = subjectById(subjectId);
+    const label = customMap.get(subjectId) ?? subjectById(subjectId).label;
     return {
       id: crypto.randomUUID(),
       exam_id: examId,
       subject_id: subjectId,
-      subject_name: subject.label,
+      subject_name: label,
       normalized_name: subjectId,
       previous_score: null,
       previous_study_minutes: null,

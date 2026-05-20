@@ -40,6 +40,7 @@ export function Step5Confirm() {
           mode: d.mode,
           settings: d.settings,
           studyDays: d.studyDays,
+          customSubjects: d.customSubjects,
         });
       } else {
         // 未ログイン: Zustand（localStorage）に保存
@@ -86,7 +87,13 @@ export function Step5Confirm() {
 
         <div className="text-xs text-text-mid mb-1.5 mt-2">テスト科目</div>
         <div className="flex gap-1.5 flex-wrap">
-          {d.subjects.map(id => <SubjectPill key={id} subjId={id}/>)}
+          {d.subjects.map(id => (
+            <SubjectPill
+              key={id}
+              subjId={id}
+              label={d.customSubjects.find(c => c.id === id)?.label}
+            />
+          ))}
         </div>
       </Card>
 

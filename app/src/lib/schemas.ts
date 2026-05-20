@@ -80,6 +80,10 @@ export const savePlanSchema = z.object({
     noClubBeforeTest: z.boolean(),
   }),
   studyDays: z.record(z.string(), z.array(studyDayBlockSchema)),
+  customSubjects: z.array(z.object({
+    id: z.string().min(1).max(200),
+    label: z.string().min(1).max(100),
+  })).optional().default([]),
 }).refine(
   d => d.startDate <= d.endDate,
   { path: ['endDate'], message: '終了日は開始日以降にしてください' }

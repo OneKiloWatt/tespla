@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { usePlanDraft } from '@/lib/plan-draft-store';
 import { SUBJECTS } from '@/lib/subjects';
 import { datesBetween, formatMdFull } from '@/lib/utils';
@@ -11,6 +11,9 @@ import { StepShell } from './step-shell';
 
 export function Step1Info() {
   const d = usePlanDraft();
+  const [adding, setAdding] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+
   const toggleSubject = (id: string) =>
     d.patch({
       subjects: d.subjects.includes(id)
@@ -25,6 +28,19 @@ export function Step1Info() {
         [date]: cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id],
       },
     });
+  };
+
+  const commitAdd = () => {
+    const label = inputValue.trim();
+    if (label.length > 0) {
+      d.addCustomSubject(label);
+    }
+    setInputValue('');
+    setAdding(false);
+  };
+  const cancelAdd = () => {
+    setInputValue('');
+    setAdding(false);
   };
 
   const dates = useMemo(() => datesBetween(d.startDate, d.endDate), [d.startDate, d.endDate]);
@@ -61,7 +77,40 @@ export function Step1Info() {
               {s.label}
             </Chip>
           ))}
-          <Chip className="border-dashed"><IconPlus/>追加</Chip>
+          {d.customSubjects.map(c => (
+            <div key={c.id} className="flex items-center">
+              <Chip selected={d.subjects.includes(c.id)} onClick={() => toggleSubject(c.id)}>
+                {d.subjects.includes(c.id) && <IconCheck/>}
+                <span className="max-w-[8rem] truncate">{c.label}</span>
+              </Chip>
+              <button
+                type="button"
+                className="ml-0.5 p-1 text-text-soft hover:text-danger text-xs"
+                onClick={() => d.removeCustomSubject(c.id)}
+                aria-label={`${c.label}を削除`}
+              >×</button>
+            </div>
+          ))}
+          {adding ? (
+            <div className="flex items-center gap-1">
+              <input
+                autoFocus
+                className="h-8 px-2 text-sm border border-accent rounded-full outline-none"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                maxLength={100}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); commitAdd(); }
+                  if (e.key === 'Escape') cancelAdd();
+                }}
+                placeholder="科目名"
+              />
+              <button type="button" onClick={commitAdd} className="p-1 text-accent text-sm">✓</button>
+              <button type="button" onClick={cancelAdd} className="p-1 text-text-soft text-sm">✕</button>
+            </div>
+          ) : (
+            <Chip className="border-dashed" onClick={() => setAdding(true)}><IconPlus/>追加</Chip>
+          )}
         </div>
       </Field>
 
@@ -80,7 +129,7 @@ export function Step1Info() {
                     selected={(d.testDaySubjects[date] ?? []).includes(sid)}
                     onClick={() => toggleDaySubject(date, sid)}
                   >
-                    {SUBJECTS.find(s => s.id === sid)?.label ?? sid}
+                    {SUBJECTS.find(s => s.id === sid)?.label ?? d.customSubjects.find(c => c.id === sid)?.label ?? sid}
                   </Chip>
                 ))}
               </div>
