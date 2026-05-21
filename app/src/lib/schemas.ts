@@ -69,8 +69,11 @@ export const savePlanSchema = z.object({
   testName: z.string().min(1).max(100, 'テスト名は100文字以内にしてください'),
   startDate: z.string().regex(ISO_DATE, 'startDate は YYYY-MM-DD 形式にしてください'),
   endDate: z.string().regex(ISO_DATE, 'endDate は YYYY-MM-DD 形式にしてください'),
-  subjects: z.array(z.string()).min(1),
-  testDaySubjects: z.record(z.string(), z.array(z.string())),
+  subjects: z.array(z.string()).min(1).max(30),
+  testDaySubjects: z.record(z.string(), z.array(z.string())).refine(
+    v => Object.keys(v).length <= 60,
+    'テスト期間は60日以内にしてください'
+  ),
   mode: z.enum(['auto', 'manual']),
   settings: z.object({
     weekdayMins: z.number().int().min(0).max(600),
@@ -79,7 +82,10 @@ export const savePlanSchema = z.object({
     clubDays: z.array(z.number().int().min(0).max(6)),
     noClubBeforeTest: z.boolean(),
   }),
-  studyDays: z.record(z.string(), z.array(studyDayBlockSchema)),
+  studyDays: z.record(z.string(), z.array(studyDayBlockSchema)).refine(
+    v => Object.keys(v).length <= 365,
+    '勉強日は365日以内にしてください'
+  ),
   customSubjects: z.array(z.object({
     id: z.string().min(1).max(200),
     label: z.string().min(1).max(100),

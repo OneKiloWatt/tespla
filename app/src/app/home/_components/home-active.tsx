@@ -1,9 +1,11 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TestPlan, StudyBlock } from '@/lib/types';
 import { subjectById } from '@/lib/subjects';
 import { formatMinutes, formatMdFull } from '@/lib/utils';
 import { pickAdvice } from '@/lib/sample-data';
+import { useAppStore } from '@/lib/store';
+import { updateDailyPlan } from '@/actions/plan';
 import { AppBar } from '@/components/app-bar';
 import { Card, CardSoft } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,9 +21,38 @@ interface HomeActiveProps {
 }
 
 export function HomeActive({ plan, today }: HomeActiveProps) {
+  const { user, upsertPlan } = useAppStore();
+  const [advice] = useState(() => pickAdvice());
   const [todayItems, setTodayItems] = useState<StudyBlock[]>(plan.studyDays[today] ?? []);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState(today);
+
+  const todayItemsRef = useRef(todayItems);
+  todayItemsRef.current = todayItems;
+  const prevEditingIdxRef = useRef<number | null>(null);
+
+  const saveCurrentItems = useCallback((items: StudyBlock[]) => {
+    if (!user) {
+      upsertPlan({ ...plan, studyDays: { ...plan.studyDays, [today]: items }, updatedAt: new Date().toISOString() });
+    } else {
+      const originalIds = new Set((plan.studyDays[today] ?? []).map(b => b.id));
+      for (const it of items) {
+        if (originalIds.has(it.id) && it.mins >= 10) {
+          void updateDailyPlan(plan.id, today, it.id, it.mins).catch(e => console.error('updateDailyPlan failed', e));
+        }
+      }
+    }
+  }, [user, upsertPlan, plan, today]);
+
+  const saveCurrentItemsRef = useRef(saveCurrentItems);
+  saveCurrentItemsRef.current = saveCurrentItems;
+
+  useEffect(() => {
+    const prev = prevEditingIdxRef.current;
+    prevEditingIdxRef.current = editingIdx;
+    if (prev === null || editingIdx !== null) return;
+    saveCurrentItemsRef.current(todayItemsRef.current);
+  }, [editingIdx]);
 
   // 進捗: 今日まで（含む）に予定された分 / 全予定分
   const { doneAll, totalAll, pct } = useMemo(() => {
@@ -41,9 +72,8 @@ export function HomeActive({ plan, today }: HomeActiveProps) {
 
   const adjustMins = (idx: number, delta: number) => {
     setTodayItems(prev => prev.map((it, i) =>
-      i === idx ? { ...it, mins: Math.max(0, it.mins + delta) } : it
+      i === idx ? { ...it, mins: Math.max(10, it.mins + delta) } : it
     ));
-    // TODO: ストアにも反映 / DBへ保存
   };
 
   return (
@@ -167,7 +197,7 @@ export function HomeActive({ plan, today }: HomeActiveProps) {
             <div className="text-[11px] font-bold">今日のひとこと</div>
           </div>
           <div className="text-[13px] text-accent-dark leading-[1.6]">
-            {pickAdvice(0)}
+            {advice}
           </div>
         </CardSoft>
       </main>
