@@ -33,7 +33,7 @@ export function HomeEnded({ plan }: { plan: TestPlan }) {
           </CardOutline>
 
           <Button asChild size="lg" block>
-            <Link href="/result/new">テスト結果を記録する</Link>
+            <Link href={`/result/new?examId=${plan.id}`}>テスト結果を記録する</Link>
           </Button>
           <div className="text-[11px] text-text-mid mt-2.5 leading-[1.6]">
             次のテストでもっと効率よく勉強するために、<br/>
