@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { AppBar } from '@/components/app-bar';
 import { Button } from '@/components/ui/button';
 import { Card, CardSoft } from '@/components/ui/card';
-import { HeroPlaceholder } from '@/components/hero-placeholder';
 import { IconBulb, IconMenu, IconPlus } from '@/components/icons';
 
 export function HomeEmpty() {
@@ -19,7 +18,7 @@ export function HomeEmpty() {
       />
       <main className="flex-1 overflow-y-auto p-[18px] pb-6">
         <Card className="text-center">
-          <HeroPlaceholder label="画像: 計画を立てる中高生・机に向かう学生など" height={140}/>
+          <img src="/study-capybara.png" alt="勉強しているカピバラ" className="w-full rounded-[14px] my-1.5 mb-4 object-contain bg-[#fdf3e7]" style={{ height: 140 }}/>
           <h2 className="text-lg font-extrabold mb-2">
             さあ、最初の<br/>テスト計画を作ろう
           </h2>

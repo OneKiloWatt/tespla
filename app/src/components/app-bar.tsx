@@ -63,6 +63,7 @@ export function AppBar({ title, onBack, showBack = true, right }: AppBarProps) {
               <IconBack/>
             </button>
           ) : <div className="w-9"/>}
+          <img src="/icon.png" alt="" aria-hidden className="w-6 h-6 rounded-md object-cover"/>
           <div className="text-base font-bold">{title}</div>
         </div>
         <div>{rightContent}</div>

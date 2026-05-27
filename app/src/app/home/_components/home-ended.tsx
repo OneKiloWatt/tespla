@@ -3,7 +3,6 @@ import type { TestPlan } from '@/lib/types';
 import { AppBar } from '@/components/app-bar';
 import { Button } from '@/components/ui/button';
 import { Card, CardOutline } from '@/components/ui/card';
-import { HeroPlaceholder } from '@/components/hero-placeholder';
 import { IconMenu } from '@/components/icons';
 
 export function HomeEnded({ plan }: { plan: TestPlan }) {
@@ -27,7 +26,7 @@ export function HomeEnded({ plan }: { plan: TestPlan }) {
       />
       <main className="flex-1 overflow-y-auto p-[18px] pb-5">
         <Card className="text-center">
-          <HeroPlaceholder label="画像: テストをやり遂げた中高生・取り組んだ余韻など" height={120}/>
+          <img src="/victory-capybara.png" alt="バンザイしているカピバラ" className="w-full rounded-[14px] my-1.5 mb-4 object-contain bg-[#fdf3e7]" style={{ height: 120 }}/>
           <h2 className="text-xl font-extrabold mb-1.5">お疲れさま！</h2>
           <p className="text-[13px] text-text-mid leading-[1.7] mb-4">
             {plan.testName}<br/>{allDays.length}日間、よく頑張りました。

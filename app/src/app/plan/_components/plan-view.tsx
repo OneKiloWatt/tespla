@@ -8,7 +8,6 @@ import { AppBar } from '@/components/app-bar';
 import { BottomNav } from '@/components/bottom-nav';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HeroPlaceholder } from '@/components/hero-placeholder';
 import { SubjectPill } from '@/components/subject-pill';
 import { DayCard } from '@/components/day-card';
 import { DayEditDialog } from '@/components/day-edit-dialog';
@@ -84,7 +83,7 @@ export function PlanView({ initialPlan }: PlanViewProps) {
         <AppBar title="勉強計画の作成" showBack={false}/>
         <main className="flex-1 overflow-y-auto p-[18px]">
           <Card className="text-center">
-            <HeroPlaceholder label="画像: 計画を作っていない状態 / 真っ白なノートなど" height={120}/>
+            <img src="/notebook.png" alt="開いたノート" className="w-full rounded-[14px] my-1.5 mb-4 object-contain bg-[#fdf3e7]" style={{ height: 120 }}/>
             <h2 className="text-lg font-extrabold mb-2">まだ計画がありません</h2>
             <p className="text-xs text-text-mid leading-[1.7] mb-4">
               テスト計画を作ると、ここから内容を変えられます。

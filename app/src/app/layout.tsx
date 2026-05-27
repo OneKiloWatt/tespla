@@ -12,6 +12,7 @@ const noto = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: 'テスプラ - テスト対策プランナー',
   description: '中学生・高校生のためのテスト勉強計画アプリ',
+  icons: { icon: '/icon.png', apple: '/icon.png' },
 };
 
 export const viewport = {
