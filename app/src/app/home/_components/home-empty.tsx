@@ -18,7 +18,7 @@ export function HomeEmpty() {
       />
       <main className="flex-1 overflow-y-auto p-[18px] pb-6">
         <Card className="text-center">
-          <img src="/study-capybara.png" alt="勉強しているカピバラ" className="w-full rounded-[14px] my-1.5 mb-4 object-contain bg-[#fdf3e7]" style={{ height: 140 }}/>
+          <img src="/study-capybara.png" alt="" className="w-full rounded-[14px] my-1.5 mb-4 object-contain bg-bg-card-soft" style={{ height: 140 }}/>
           <h2 className="text-lg font-extrabold mb-2">
             さあ、最初の<br/>テスト計画を作ろう
           </h2>
