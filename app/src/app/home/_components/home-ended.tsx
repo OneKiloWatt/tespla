@@ -3,7 +3,6 @@ import type { TestPlan } from '@/lib/types';
 import { AppBar } from '@/components/app-bar';
 import { Button } from '@/components/ui/button';
 import { Card, CardOutline } from '@/components/ui/card';
-import { IconMenu } from '@/components/icons';
 
 export function HomeEnded({ plan }: { plan: TestPlan }) {
   const allDays = Object.keys(plan.studyDays);
@@ -18,11 +17,6 @@ export function HomeEnded({ plan }: { plan: TestPlan }) {
       <AppBar
         title="ホーム"
         showBack={false}
-        right={
-          <button aria-label="メニュー" className="w-9 h-9 rounded-[10px] inline-flex items-center justify-center text-text-mid hover:bg-black/[0.04]">
-            <IconMenu/>
-          </button>
-        }
       />
       <main className="flex-1 overflow-y-auto p-[18px] pb-5">
         <Card className="text-center">

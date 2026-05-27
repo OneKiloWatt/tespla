@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Calendar } from '@/components/calendar';
 import { SubjectPill } from '@/components/subject-pill';
-import { IconBulb, IconChevronLeft, IconChevronRight, IconMenu, IconPlus } from '@/components/icons';
+import { IconBulb, IconChevronLeft, IconChevronRight, IconPlus } from '@/components/icons';
 
 interface HomeActiveProps {
   plan: TestPlan;
@@ -81,11 +81,6 @@ export function HomeActive({ plan, today }: HomeActiveProps) {
       <AppBar
         title="ホーム"
         showBack={false}
-        right={
-          <button aria-label="メニュー" className="w-9 h-9 rounded-[10px] inline-flex items-center justify-center text-text-mid hover:bg-black/[0.04]">
-            <IconMenu/>
-          </button>
-        }
       />
       <main className="flex-1 overflow-y-auto p-4 pb-5">
         <div className="flex justify-between items-baseline mb-2.5">

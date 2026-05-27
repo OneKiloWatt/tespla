@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { AppBar } from '@/components/app-bar';
 import { Button } from '@/components/ui/button';
 import { Card, CardSoft } from '@/components/ui/card';
-import { IconBulb, IconMenu, IconPlus } from '@/components/icons';
+import { IconBulb, IconPlus } from '@/components/icons';
 
 export function HomeEmpty() {
   return (
@@ -10,11 +10,6 @@ export function HomeEmpty() {
       <AppBar
         title="ホーム"
         showBack={false}
-        right={
-          <button aria-label="メニュー" className="w-9 h-9 rounded-[10px] inline-flex items-center justify-center text-text-mid hover:bg-black/[0.04]">
-            <IconMenu/>
-          </button>
-        }
       />
       <main className="flex-1 overflow-y-auto p-[18px] pb-6">
         <Card className="text-center">

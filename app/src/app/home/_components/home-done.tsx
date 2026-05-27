@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardSoft } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SubjectPill } from '@/components/subject-pill';
-import { IconMenu, IconPencil, IconPlus } from '@/components/icons';
+import { IconPencil, IconPlus } from '@/components/icons';
 
 export function HomeDone({ plan }: { plan: TestPlan }) {
   // 結果がある前提だが、未記入なら空配列
@@ -25,11 +25,6 @@ export function HomeDone({ plan }: { plan: TestPlan }) {
       <AppBar
         title="ホーム"
         showBack={false}
-        right={
-          <button aria-label="メニュー" className="w-9 h-9 rounded-[10px] inline-flex items-center justify-center text-text-mid hover:bg-black/[0.04]">
-            <IconMenu/>
-          </button>
-        }
       />
       <main className="flex-1 overflow-y-auto p-4 pb-5">
         <Card>

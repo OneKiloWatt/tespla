@@ -1,9 +1,10 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
-import { IconBack, IconMenu } from './icons';
+import { IconBack, IconUser } from './icons';
 
 interface AppBarProps {
   title: string;
@@ -36,18 +37,14 @@ export function AppBar({ title, onBack, showBack = true, right }: AppBarProps) {
   };
 
   const rightContent = right ?? (
-    user ? (
-      <button
-        onClick={() => setMenuOpen(v => !v)}
-        aria-label="メニュー"
-        aria-expanded={menuOpen}
-        className="w-9 h-9 rounded-[10px] inline-flex items-center justify-center text-text-mid hover:bg-black/[0.04]"
-      >
-        <IconMenu/>
-      </button>
-    ) : (
-      <div className="w-9"/>
-    )
+    <button
+      onClick={() => setMenuOpen(v => !v)}
+      aria-label="メニュー"
+      aria-expanded={menuOpen}
+      className={`w-9 h-9 rounded-[10px] inline-flex items-center justify-center hover:bg-black/[0.04] ${user ? 'text-accent' : 'text-text-mid'}`}
+    >
+      <IconUser/>
+    </button>
   );
 
   return (
@@ -78,14 +75,36 @@ export function AppBar({ title, onBack, showBack = true, right }: AppBarProps) {
             onClick={() => setMenuOpen(false)}
             aria-hidden
           />
-          <div className="fixed top-[52px] right-4 z-50 bg-bg-card rounded-[12px] shadow-lg border border-divider min-w-[140px] py-1">
-            <button
-              className="w-full text-left px-4 py-2.5 text-sm text-danger hover:bg-black/[0.04] disabled:opacity-50"
-              onClick={handleLogout}
-              disabled={isLoggingOut}
+          <div role="menu" className="fixed top-[52px] right-4 z-50 bg-bg-card rounded-[12px] shadow-lg border border-divider min-w-[160px] py-1">
+            <Link
+              href="/terms"
+              role="menuitem"
+              className="block w-full text-left px-4 py-2.5 text-sm hover:bg-black/[0.04]"
+              onClick={() => setMenuOpen(false)}
             >
-              {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
-            </button>
+              利用規約
+            </Link>
+            <Link
+              href="/terms"
+              role="menuitem"
+              className="block w-full text-left px-4 py-2.5 text-sm hover:bg-black/[0.04]"
+              onClick={() => setMenuOpen(false)}
+            >
+              プライバシーポリシー
+            </Link>
+            {user && (
+              <>
+                <hr className="border-divider my-1"/>
+                <button
+                  role="menuitem"
+                  className="w-full text-left px-4 py-2.5 text-sm text-danger hover:bg-black/[0.04] disabled:opacity-50"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                >
+                  {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}
+                </button>
+              </>
+            )}
           </div>
         </>
       )}
