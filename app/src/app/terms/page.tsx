@@ -14,7 +14,7 @@ function TermsInner() {
 
   return (
     <>
-      <AppBar title="利用規約・プライバシー"/>
+      <AppBar title={tab === 'privacy' ? 'プライバシーポリシー' : '利用規約'}/>
       <main className="flex-1 overflow-y-auto p-[18px] pb-7">
         <div className="flex gap-1.5 mb-3.5">
           <Chip selected={tab === 'terms'} onClick={() => setTab('terms')}>利用規約</Chip>
