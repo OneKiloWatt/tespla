@@ -1,12 +1,16 @@
 'use client';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AppBar } from '@/components/app-bar';
 import { Chip } from '@/components/ui/chip';
 
 type Tab = 'terms' | 'privacy';
 
-export default function TermsPage() {
-  const [tab, setTab] = useState<Tab>('terms');
+function TermsInner() {
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(
+    searchParams.get('tab') === 'privacy' ? 'privacy' : 'terms'
+  );
 
   return (
     <>
@@ -24,6 +28,14 @@ export default function TermsPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function TermsPage() {
+  return (
+    <Suspense>
+      <TermsInner/>
+    </Suspense>
   );
 }
 

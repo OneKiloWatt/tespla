@@ -85,7 +85,7 @@ export function AppBar({ title, onBack, showBack = true, right }: AppBarProps) {
               利用規約
             </Link>
             <Link
-              href="/terms"
+              href="/terms?tab=privacy"
               role="menuitem"
               className="block w-full text-left px-4 py-2.5 text-sm hover:bg-black/[0.04]"
               onClick={() => setMenuOpen(false)}
