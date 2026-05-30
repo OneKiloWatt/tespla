@@ -1,6 +1,6 @@
 'use client';
-import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { AppBar } from '@/components/app-bar';
 import { Chip } from '@/components/ui/chip';
 
@@ -8,17 +8,16 @@ type Tab = 'terms' | 'privacy';
 
 function TermsInner() {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<Tab>(
-    searchParams.get('tab') === 'privacy' ? 'privacy' : 'terms'
-  );
+  const tab: Tab = searchParams.get('tab') === 'privacy' ? 'privacy' : 'terms';
+  const router = useRouter();
 
   return (
     <>
       <AppBar title={tab === 'privacy' ? 'プライバシーポリシー' : '利用規約'}/>
       <main className="flex-1 overflow-y-auto p-[18px] pb-7">
         <div className="flex gap-1.5 mb-3.5">
-          <Chip selected={tab === 'terms'} onClick={() => setTab('terms')}>利用規約</Chip>
-          <Chip selected={tab === 'privacy'} onClick={() => setTab('privacy')}>プライバシーポリシー</Chip>
+          <Chip selected={tab === 'terms'} onClick={() => router.replace('/terms', { scroll: false })}>利用規約</Chip>
+          <Chip selected={tab === 'privacy'} onClick={() => router.replace('/terms?tab=privacy', { scroll: false })}>プライバシーポリシー</Chip>
         </div>
 
         {tab === 'terms' ? <TermsContent/> : <PrivacyContent/>}
@@ -33,7 +32,7 @@ function TermsInner() {
 
 export default function TermsPage() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <TermsInner/>
     </Suspense>
   );
