@@ -48,10 +48,10 @@ export function AppBar({ title, onBack, showBack = true, right }: AppBarProps) {
   );
 
   return (
-    <>
-      <div className="h-[52px] flex items-center justify-between px-4 bg-bg-base border-b border-divider shrink-0">
+    <div className="relative shrink-0">
+      <div className="h-[52px] flex items-center justify-between px-4 bg-bg-base border-b border-divider">
         <div className="flex items-center gap-1.5">
-          {showBack ? (
+          {showBack && (
             <button
               onClick={back}
               aria-label="戻る"
@@ -59,7 +59,7 @@ export function AppBar({ title, onBack, showBack = true, right }: AppBarProps) {
             >
               <IconBack/>
             </button>
-          ) : <div className="w-9"/>}
+          )}
           <img src="/icon.png" alt="" aria-hidden className="w-6 h-6 rounded-md object-cover"/>
           <div className="text-base font-bold">{title}</div>
         </div>
@@ -75,7 +75,7 @@ export function AppBar({ title, onBack, showBack = true, right }: AppBarProps) {
             onClick={() => setMenuOpen(false)}
             aria-hidden
           />
-          <div role="menu" className="fixed top-[52px] right-4 z-50 bg-bg-card rounded-[12px] shadow-lg border border-divider min-w-[160px] py-1">
+          <div role="menu" className="absolute top-full right-0 z-50 bg-bg-card rounded-[12px] shadow-lg border border-divider min-w-[160px] py-1">
             <Link
               href="/terms"
               role="menuitem"
@@ -108,6 +108,6 @@ export function AppBar({ title, onBack, showBack = true, right }: AppBarProps) {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
