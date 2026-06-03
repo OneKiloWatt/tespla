@@ -27,13 +27,18 @@ export function ResultEntryForm({ exam }: Props) {
   const { register, control, handleSubmit, formState: { isSubmitting } } =
     useForm<TestResultInput>({
       resolver: zodResolver(testResultSchema),
-      defaultValues: { scores: {}, memo: '' },
+      defaultValues: { scores: {}, actualStudyMinutes: {}, memo: '' },
     });
 
   const onSubmit = async (values: TestResultInput) => {
     setErrorMessage(null);
     try {
-      await saveResult(exam.id, values.scores as Record<string, number>, values.memo);
+      await saveResult(
+        exam.id,
+        values.scores as Record<string, number>,
+        values.memo,
+        values.actualStudyMinutes,
+      );
       router.push('/history/' + exam.id);
     } catch (e) {
       setErrorMessage(e instanceof Error ? e.message : '保存に失敗しました');
@@ -69,6 +74,34 @@ export function ResultEntryForm({ exam }: Props) {
                       )}
                     />
                     <span className="text-xs text-text-mid">点</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          <Card className="mt-3">
+            <div className="text-[13px] font-semibold mb-2">実際の勉強時間（任意）</div>
+            <div className="flex flex-col gap-3">
+              {exam.subjects.map(id => {
+                const s = subjectById(id);
+                return (
+                  <div key={id} className="flex items-center gap-3">
+                    <span className="w-3 h-3 rounded-full" style={{ background: s.color }}/>
+                    <div className="flex-1 text-sm font-semibold">{s.label}</div>
+                    <Controller
+                      control={control}
+                      name={`actualStudyMinutes.${id}`}
+                      render={({ field }) => (
+                        <Input
+                          type="number" min={0} max={10000} placeholder="例: 90"
+                          className="w-[78px] text-center text-base font-bold"
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        />
+                      )}
+                    />
+                    <span className="text-xs text-text-mid">分</span>
                   </div>
                 );
               })}

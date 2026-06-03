@@ -190,13 +190,14 @@ export async function saveResult(
   examId: string,
   scores: Record<string, number>,
   memo?: string,
+  actualStudyMinutes?: Record<string, number>,
 ): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
 
   // Zod バリデーション
-  const parsed = saveResultSchema.safeParse({ examId, scores, memo });
+  const parsed = saveResultSchema.safeParse({ examId, scores, memo, actualStudyMinutes });
   if (!parsed.success) {
     throw new Error(parsed.error.issues.map(i => i.message).join(', '));
   }
@@ -236,13 +237,13 @@ export async function saveResult(
     if (existing) {
       const { error } = await supabase
         .from('exam_results')
-        .update({ actual_score: score, note: parsed.data.memo ?? null, updated_at: now })
+        .update({ actual_score: score, actual_study_minutes: parsed.data.actualStudyMinutes?.[subjectId] ?? null, note: parsed.data.memo ?? null, updated_at: now })
         .eq('id', existing.id);
       if (error) throw new Error('結果の保存に失敗しました');
     } else {
       const { error } = await supabase
         .from('exam_results')
-        .insert({ id: crypto.randomUUID(), exam_subject_id: examSubjectId, actual_score: score, note: parsed.data.memo ?? null });
+        .insert({ id: crypto.randomUUID(), exam_subject_id: examSubjectId, actual_score: score, actual_study_minutes: parsed.data.actualStudyMinutes?.[subjectId] ?? null, note: parsed.data.memo ?? null });
       if (error) throw new Error('結果の保存に失敗しました');
     }
   }

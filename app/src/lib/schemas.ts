@@ -49,6 +49,7 @@ export type AutoSettingsInput = z.infer<typeof autoSettingsSchema>;
 /** テスト結果記入 */
 export const testResultSchema = z.object({
   scores: z.record(z.string(), z.number().int().min(0).max(100)),
+  actualStudyMinutes: z.record(z.string(), z.number().int().min(0).max(10000)).optional(),
   memo: z.string().optional(),
 });
 export type TestResultInput = z.infer<typeof testResultSchema>;
@@ -111,6 +112,10 @@ export const saveResultSchema = z.object({
     z.string().min(1).max(100),
     z.number().int().min(0).max(100),
   ).refine(v => Object.keys(v).length <= 20, '科目数は20以内にしてください'),
+  actualStudyMinutes: z.record(
+    z.string().min(1).max(100),
+    z.number().int().min(0).max(10000),
+  ).refine(v => Object.keys(v).length <= 20, '科目数は20以内にしてください').optional(),
   memo: z.string().max(1000).optional(),
 });
 export type SaveResultInput = z.infer<typeof saveResultSchema>;
