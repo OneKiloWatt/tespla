@@ -187,6 +187,20 @@ services:
     ports:
       - "${SUPABASE_STUDIO_PORT:-54323}:3000"
 
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.52.0-noble
+    profiles: ["e2e"]
+    working_dir: /work
+    volumes:
+      - ./app:/work
+      - /work/node_modules
+    environment:
+      - BASE_URL=http://app:3000
+    command: npx playwright test
+    depends_on:
+      app:
+        condition: service_healthy
+
 volumes:
   node_modules:
   supabase-db-data:
