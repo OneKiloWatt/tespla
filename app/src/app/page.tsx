@@ -64,7 +64,7 @@ export default function TopPage() {
       <div className="text-center text-[11px] text-text-soft mt-4 leading-[1.8]">
         <Link href="/terms" className="text-text-mid underline">利用規約</Link>
         {' ・ '}
-        <Link href="/terms" className="text-text-mid underline">プライバシーポリシー</Link>
+        <Link href="/terms?tab=privacy" className="text-text-mid underline">プライバシーポリシー</Link>
       </div>
     </main>
   );

@@ -17,6 +17,7 @@ import { IconBulb, IconChevronLeft, IconChevronRight, IconPlus } from '@/compone
 
 interface HomeActiveProps {
   plan: TestPlan;
+  /** YYYY-MM-DD 形式 */
   today: string;
 }
 
@@ -26,6 +27,14 @@ export function HomeActive({ plan, today }: HomeActiveProps) {
   const [todayItems, setTodayItems] = useState<StudyBlock[]>(plan.studyDays[today] ?? []);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState(today);
+  const [yearMonth, setYearMonth] = useState(() => today.slice(0, 7));
+  const goToMonth = (dir: 1 | -1) => {
+    const [y, m] = yearMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + dir, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    setYearMonth(ym);
+    setSelectedDate(today.slice(0, 7) === ym ? today : `${ym}-01`);
+  };
 
   const todayItemsRef = useRef(todayItems);
   todayItemsRef.current = todayItems;
@@ -165,14 +174,14 @@ export function HomeActive({ plan, today }: HomeActiveProps) {
         {/* カレンダー */}
         <Card className="mt-3">
           <div className="flex justify-between items-center mb-2.5">
-            <div className="text-[13px] font-bold">5月のカレンダー</div>
+            <div className="text-[13px] font-bold">{Number(yearMonth.split('-')[1])}月のカレンダー</div>
             <div className="flex gap-1.5 items-center">
-              <CalNavBtn label="前の月"><IconChevronLeft/></CalNavBtn>
-              <CalNavBtn label="次の月"><IconChevronRight/></CalNavBtn>
+              <CalNavBtn label="前の月" onClick={() => goToMonth(-1)}><IconChevronLeft/></CalNavBtn>
+              <CalNavBtn label="次の月" onClick={() => goToMonth(1)}><IconChevronRight/></CalNavBtn>
             </div>
           </div>
           <Calendar
-            yearMonth="2026-05"
+            yearMonth={yearMonth}
             studyDays={plan.studyDays}
             today={today}
             selectedDate={selectedDate}
@@ -200,10 +209,11 @@ export function HomeActive({ plan, today }: HomeActiveProps) {
   );
 }
 
-function CalNavBtn({ children, label }: { children: React.ReactNode; label: string }) {
+function CalNavBtn({ children, label, onClick }: { children: React.ReactNode; label: string; onClick?: () => void }) {
   return (
     <button
       aria-label={label}
+      onClick={onClick}
       className="w-9 h-9 rounded-[10px] inline-flex items-center justify-center bg-black/[0.04] text-text-dark hover:bg-black/[0.08] active:scale-95 transition-transform"
     >
       {children}
