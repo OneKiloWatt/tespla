@@ -57,6 +57,8 @@ export interface TestPlan {
   studyDays: Record<ISODate, StudyBlock[]>;
   /** 自動設定（ある場合） */
   autoSettings?: AutoSettings;
+  /** カスタム科目のラベル情報 */
+  customSubjects?: { id: string; label: string }[];
   /** 結果（テスト後） */
   result?: TestResult;
   createdAt: string;

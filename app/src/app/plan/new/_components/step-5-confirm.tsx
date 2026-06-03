@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlanDraft } from '@/lib/plan-draft-store';
 import { useAppStore } from '@/lib/store';
-import { savePlan } from '@/actions/plan';
+import { savePlan, getActivePlanId, finishAndCreateNew } from '@/actions/plan';
 import { Card, CardSoft } from '@/components/ui/card';
 import { SubjectPill } from '@/components/subject-pill';
 import { IconWarning } from '@/components/icons';
@@ -16,6 +16,12 @@ export function Step5Confirm() {
   const { upsertPlan, user } = useAppStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [hasActivePlan, setHasActivePlan] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getActivePlanId().then(id => { if (id) setHasActivePlan(true); });
+  }, [user]);
 
   const totalMins = Object.values(d.studyDays)
     .flat()
@@ -30,6 +36,9 @@ export function Step5Confirm() {
 
     try {
       if (user) {
+        // edit flow ではモーダルをスキップするため、アクティブ計画が残っていれば先に終了させる
+        const activeId = await getActivePlanId();
+        if (activeId) await finishAndCreateNew(activeId);
         // ログイン時: Server Action で DB に保存
         await savePlan({
           testName: d.testName,
@@ -96,6 +105,13 @@ export function Step5Confirm() {
           ))}
         </div>
       </Card>
+
+      {hasActivePlan && user && (
+        <CardSoft className="mt-3 text-xs text-text-mid leading-[1.6] flex gap-2 items-start">
+          <span className="text-accent-dark shrink-0 mt-px"><IconWarning size={14}/></span>
+          <span>保存すると現在の計画は「終了済み」になります。削除はされません。</span>
+        </CardSoft>
+      )}
 
       {saveError && (
         <div className="mt-3 text-xs text-danger font-medium px-1">

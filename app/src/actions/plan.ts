@@ -1,8 +1,9 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { planDraftToInsertData } from '@/lib/db-converters';
+import { planDraftToInsertData, fetchActivePlan } from '@/lib/db-converters';
 import type { PlanDraftData } from '@/lib/db-converters';
+import type { TestPlan } from '@/lib/types';
 import { savePlanSchema, updateDailyPlanSchema, saveResultSchema } from '@/lib/schemas';
 
 /**
@@ -253,6 +254,16 @@ export async function saveResult(
     .eq('id', examId)
     .eq('user_id', user.id);
   if (updateError) throw new Error('計画ステータスの更新に失敗しました');
+}
+
+/**
+ * ログインユーザーのアクティブな計画を取得する Server Action
+ */
+export async function getActivePlan(): Promise<TestPlan | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  return fetchActivePlan(supabase, user.id);
 }
 
 /**

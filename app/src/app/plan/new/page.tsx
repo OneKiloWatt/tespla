@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePlanDraft } from '@/lib/plan-draft-store';
 import { useAppStore } from '@/lib/store';
-import { finishAndCreateNew, getActivePlanId } from '@/actions/plan';
+import { finishAndCreateNew, getActivePlanId, getActivePlan } from '@/actions/plan';
+import type { TestPlan } from '@/lib/types';
 import { AppBar } from '@/components/app-bar';
 import { StepperBar } from '@/components/stepper-bar';
 import { Button } from '@/components/ui/button';
@@ -14,18 +15,11 @@ import { Step4Allocate } from './_components/step-4-allocate';
 import { Step5Confirm } from './_components/step-5-confirm';
 import { IconSpinner } from '@/components/icons';
 
-/**
- * 計画作成ウィザード（/plan/new）
- *
- *   1 → 2 → ( 3 ) → 4 → 5
- *           ↑ auto選択時のみ
- *
- * 状態は usePlanDraft（Zustand）で管理。
- * mount 時に並行作成防止チェックを行う。
- */
-export default function NewPlanPage() {
-  const { step, prev } = usePlanDraft();
-  const { user, activePlanId, setActivePlan } = useAppStore();
+function NewPlanPageContent() {
+  const searchParams = useSearchParams();
+  const editParam = searchParams.get('edit'); // 'info' | 'auto' | null
+  const { step, prev, reset, patch } = usePlanDraft();
+  const { user, activePlanId, plans, setActivePlan } = useAppStore();
   const router = useRouter();
 
   const [showModal, setShowModal] = useState(false);
@@ -36,16 +30,41 @@ export default function NewPlanPage() {
   useEffect(() => {
     let cancelled = false;
 
-    async function checkActivePlan() {
+    async function init() {
+      if (editParam === 'info' || editParam === 'auto') {
+        // Edit mode: load active plan into draft, skip modal
+        let plan: TestPlan | null = null;
+        if (user) {
+          plan = await getActivePlan();
+        } else if (activePlanId) {
+          plan = plans.find(p => p.id === activePlanId) ?? null;
+        }
+        if (cancelled || !plan) return;
+
+        reset();
+        patch({
+          testName: plan.testName,
+          startDate: plan.startDate,
+          endDate: plan.endDate,
+          subjects: plan.subjects,
+          testDaySubjects: plan.testDaySubjects,
+          studyDays: plan.studyDays,
+          mode: editParam === 'auto' ? 'auto' : (plan.autoSettings ? 'auto' : 'manual'),
+          ...(plan.autoSettings ? { settings: plan.autoSettings } : {}),
+          customSubjects: plan.customSubjects ?? [],
+          step: editParam === 'auto' ? 1 : 0,
+        });
+        return;
+      }
+
+      // Normal mode: check for existing active plan
       if (user) {
-        // ログイン時: Server Action で確認
         const activeId = await getActivePlanId();
         if (!cancelled && activeId) {
           setExistingExamId(activeId);
           setShowModal(true);
         }
       } else {
-        // 未ログイン: Zustand ストアで確認
         if (activePlanId !== null) {
           setExistingExamId(activePlanId);
           setShowModal(true);
@@ -53,7 +72,7 @@ export default function NewPlanPage() {
       }
     }
 
-    checkActivePlan();
+    init();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -68,10 +87,8 @@ export default function NewPlanPage() {
     setModalError(null);
     try {
       if (user) {
-        // ログイン時: 既存計画を finished に更新
         await finishAndCreateNew(existingExamId);
       } else {
-        // 未ログイン: Zustand から削除
         setActivePlan(null);
       }
       setShowModal(false);
@@ -122,5 +139,13 @@ export default function NewPlanPage() {
         </div>
       )}
     </>
+  );
+}
+
+export default function NewPlanPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewPlanPageContent/>
+    </Suspense>
   );
 }

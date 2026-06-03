@@ -97,7 +97,7 @@ export function testPlanToPlanDraftData(plan: TestPlan): PlanDraftData {
     mode: plan.autoSettings ? 'auto' : 'manual',
     settings: plan.autoSettings ?? defaultSettings,
     studyDays: plan.studyDays,
-    customSubjects: [],
+    customSubjects: plan.customSubjects ?? [],
   };
 }
 
@@ -280,6 +280,10 @@ export function dbRowsToTestPlan(
   // subjects[]
   const subjectIds = subjects.map(s => s.subject_id);
 
+  const customSubjects = subjects
+    .filter(s => s.subject_id.startsWith('custom_'))
+    .map(s => ({ id: s.subject_id, label: s.subject_name }));
+
   // studyDays: Record<ISODate, StudyBlock[]>
   const studyDays: Record<string, StudyBlock[]> = {};
   for (const dp of dailyPlans) {
@@ -322,6 +326,7 @@ export function dbRowsToTestPlan(
     testDaySubjects,
     studyDays,
     autoSettings,
+    customSubjects: customSubjects.length > 0 ? customSubjects : undefined,
     result,
     createdAt: exam.created_at,
     updatedAt: exam.updated_at,
