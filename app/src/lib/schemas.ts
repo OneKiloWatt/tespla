@@ -11,7 +11,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const signupSchema = z.object({
   email: z.string().email('メールアドレスの形式が正しくありません'),
   password: z.string().min(8, 'パスワードは8文字以上にしてください'),
-  agreed: z.literal(true, { error: '利用規約に同意してください' }),
+  agreed: z.boolean().refine(val => val === true, '利用規約に同意してください'),
 });
 export type SignupInput = z.infer<typeof signupSchema>;
 

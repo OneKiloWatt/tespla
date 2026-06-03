@@ -422,7 +422,7 @@ export async function fetchExamDetail(
 ): Promise<TestPlan | null> {
   const { data, error } = await supabase
     .from('exams')
-    .select('*, exam_subjects(*, exam_results(*)), daily_plans(*)')
+    .select('*, exam_subjects(*, exam_results(*)), daily_plans(*), availability_rules(*)')
     .eq('id', examId)
     .eq('user_id', userId)
     .maybeSingle();
@@ -434,8 +434,9 @@ export async function fetchExamDetail(
   const dailyPlans = (data.daily_plans ?? []) as DbDailyPlan[];
   const flatResults: DbExamResult[] = subjects.flatMap((s: DbExamSubject) => s.exam_results ?? []);
 
-  // availability_rules は今回のクエリに含まれないため null
-  const arRow: DbAvailabilityRule | null = null;
+  const arRow = Array.isArray(data.availability_rules)
+    ? (data.availability_rules[0] ?? null) as DbAvailabilityRule | null
+    : (data.availability_rules ?? null) as DbAvailabilityRule | null;
 
   return dbRowsToTestPlan(data as DbExam, subjects, dailyPlans, arRow, flatResults);
 }
